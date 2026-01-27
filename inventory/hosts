@@ -1,0 +1,19 @@
+#Groupe desserveursweb
+[webservers]
+web1 ansible_host=localhost ansible_port=2221 ansible_ssh_private_key_file=~/.ssh/ansible_key
+web2 ansible_host=localhost ansible_port=2222 ansible_ssh_private_key_file=~/.ssh/ansible_key
+
+#Groupe duserveurdebasededonnées
+[appservers]
+db1 ansible_host=localhost ansible_port=2223 ansible_ssh_private_key_file=~/.ssh/ansible_key
+
+#Groupe parentcontenanttouslesserveurs
+[all_servers:children]
+webservers
+appservers
+
+#Variablescommunesàtouslesserveurs
+[all_servers:vars]
+ansible_user=root
+ansible_connection=ssh
+ansible_python_interpreter=/usr/bin/python3
