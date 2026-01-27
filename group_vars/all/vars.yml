@@ -7,3 +7,17 @@ nginx_error_log: /var/log/nginx/error.log
 nginx_access_log: /var/log/nginx/access.log
 nginx_worker_processes: auto
 nginx_worker_connections: 1024
+
+backend_api_url: http://db1:3000
+
+nodejs_app_dir: /opt/app
+nodejs_port: 3000
+
+db_host: localhost
+db_port: 5432
+db_name: app_db
+db_user: app_user
+
+postgresql_db: app_db
+postgresql_user: app_user
+postgresql_port: 5432

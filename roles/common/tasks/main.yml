@@ -1,3 +1,16 @@
 #SPDX-License-Identifier: MIT-0
 ---
 # tasks file for roles/common
+- name: Mise à jour du cache apt
+  apt:
+    update_cache: true
+    cache_valid_time: 3600
+
+- name: Installation des packages essentiels
+  apt:
+    name:
+      - curl
+      - vim
+      - htop
+      - git
+    state: present

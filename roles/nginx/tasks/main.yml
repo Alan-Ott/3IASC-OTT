@@ -1,3 +1,43 @@
 #SPDX-License-Identifier: MIT-0
 ---
 # tasks file for roles/nginx
+# Tâches des roles webserver
+- name: Installer Nginx
+  ansible.builtin.apt:
+    name: nginx
+    state: present
+    update_cache: true
+  tags: nginx_install
+
+- name: Création du répertoire racine
+  ansible.builtin.file:
+    path: "{{ nginx_document_root }}"
+    state: directory
+    mode: '0755'
+    owner: www-data
+    group: www-data
+  tags: nginx_config
+
+- name: Déployer la configuration Nginx
+  ansible.builtin.template:
+    src: nginx.conf.j2
+    dest: /etc/nginx/sites-available/default
+  notify: restart_nginx
+  tags: nginx_deploy_config
+
+- name: Déploiement de la page d'accueil
+  ansible.builtin.template:
+    src: index.html.j2
+    dest: "{{ nginx_document_root }}/index.html"
+    mode: '0644'
+    owner: www-data
+    group: www-data
+  notify: reload_nginx
+  tags: nginx_deploy_content
+
+- name: Démarrer Nginx
+  ansible.builtin.service:
+    name: nginx
+    state: started
+    enabled: true
+  tags: nginx_service

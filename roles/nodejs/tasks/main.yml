@@ -1,3 +1,49 @@
 #SPDX-License-Identifier: MIT-0
 ---
 # tasks file for roles/nodejs
+
+- name: Installer Node.js et npm
+  apt:
+    name:
+      - nodejs
+      - npm
+    state: present
+    update_cache: true
+
+- name: Créer le répertoire de l'application
+  file:
+    path: "{{ nodejs_app_dir }}"
+    state: directory
+    owner: root
+    group: root
+    mode: '0755'
+
+- name: Déployer package.json
+  template:
+    src: package.json.j2
+    dest: "{{ nodejs_app_dir }}/package.json"
+
+- name: Installer les dépendances npm
+  npm:
+    path: "{{ nodejs_app_dir }}"
+    production: true
+
+- name: Déployer l'application Express
+  template:
+    src: app.js.j2
+    dest: "{{ nodejs_app_dir }}/app.js"
+  notify: Restart nodejs app
+
+- name: Déployer le service systemd
+  copy:
+    src: app.service
+    dest: /etc/systemd/system/app.service
+  notify:
+    - Reload systemd
+    - Restart nodejs app
+
+- name: Activer et démarrer l'application
+  systemd:
+    name: app
+    enabled: yes
+    state: started

@@ -1,0 +1,26 @@
+---
+- name: Installation common
+  hosts: webservers
+  become: true
+  roles:
+    - common
+
+- name: Installation des serveur web Nginx
+  hosts: webservers
+  become: true
+  vars_files:
+    - ../group_vars/all/vars.yml
+
+  roles:
+    - nginx
+
+- name: Installation des serveur nodejs et postgresql
+  hosts: appservers
+  become: true
+  vars_files:
+    - ../group_vars/all/vars.yml
+
+  roles:
+    - postgresql
+    - nodejs
+

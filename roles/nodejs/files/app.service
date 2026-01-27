@@ -1,0 +1,17 @@
+[Unit]
+Description=Node.js Backend API
+After=network.target
+
+[Service]
+ExecStart=/usr/bin/node {{ nodejs_app_dir }}/app.js
+WorkingDirectory={{ nodejs_app_dir }}
+Restart=always
+Environment=PORT={{ nodejs_port }}
+Environment=DB_HOST={{ db_host }}
+Environment=DB_PORT={{ db_port }}
+Environment=DB_NAME={{ db_name }}
+Environment=DB_USER={{ db_user }}
+Environment=DB_PASSWORD={{ db_password }}
+
+[Install]
+WantedBy=multi-user.target
