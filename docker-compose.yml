@@ -1,0 +1,42 @@
+services:
+  web1:
+    build: .
+    container_name: ansible-web1
+    hostname: web1
+    command: /usr/sbin/sshd -D -e
+    ports:
+      - "2221:22"
+      - "8081:80"
+    networks:
+      - ansible-net
+    tty: true
+    stdin_open: true
+
+  web2:
+    build: .
+    container_name: ansible-web2
+    hostname: web2
+    command: /usr/sbin/sshd -D -e
+    ports:
+      - "2222:22"
+      - "8082:80"
+    networks:
+      - ansible-net
+    tty: true
+    stdin_open: true
+
+  db1:
+    build: .
+    container_name: ansible-db1
+    hostname: db1
+    command: /usr/sbin/sshd -D -e
+    ports:
+      - "2223:22"
+    networks:
+      - ansible-net
+    tty: true
+    stdin_open: true
+
+networks:
+  ansible-net:
+    driver: bridge
