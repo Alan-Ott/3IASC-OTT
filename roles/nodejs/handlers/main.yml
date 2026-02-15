@@ -2,10 +2,11 @@
 ---
 # handlers file for roles/nodejs
 
-- name: Reload systemd
-  command: systemctl daemon-reexec
+- name: reload systemd
+  systemd:
+    daemon_reload: yes
 
-- name: Restart nodejs app
+- name: restart node app
   systemd:
     name: app
     state: restarted

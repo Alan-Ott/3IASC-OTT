@@ -2,48 +2,102 @@
 ---
 # tasks file for roles/nodejs
 
-- name: Installer Node.js et npm
+- name: Install Node.js dependencies including CA certificates
   apt:
     name:
-      - nodejs
       - npm
+      - curl
+      - gnupg
+      - build-essential
+      - ca-certificates
     state: present
-    update_cache: true
+    update_cache: yes
 
-- name: Créer le répertoire de l'application
+- name: Add NodeSource GPG key
+  shell: curl -fsSL https://deb.nodesource.com/gpgkey/nodesource-repo.gpg.key | gpg --dearmor -o /usr/share/keyrings/nodesource.gpg
+  args:
+    creates: /usr/share/keyrings/nodesource.gpg
+
+- name: Add NodeSource repository
+  apt_repository:
+    repo: "deb [signed-by=/usr/share/keyrings/nodesource.gpg] https://deb.nodesource.com/node_{{ nodejs_version }} nodistro main"
+    state: present
+    filename: nodesource
+
+- name: Update apt cache after adding NodeSource
+  apt:
+    update_cache: yes
+
+- name: Install Node.js
+  apt:
+    name: nodejs
+    state: present
+
+- name: Verify Node.js and npm installation
+  command: "{{ item }} --version"
+  loop:
+    - node
+    - npm
+  register: nodejs_version_check
+  changed_when: false
+
+- name: Display Node.js and npm versions
+  debug:
+    msg: "Node.js {{ nodejs_version_check.results[0].stdout }}, npm {{ nodejs_version_check.results[1].stdout }}"
+
+- name: Create application directory
   file:
     path: "{{ nodejs_app_dir }}"
     state: directory
-    owner: root
-    group: root
     mode: '0755'
 
-- name: Déployer package.json
-  template:
-    src: package.json.j2
+- name: Deploy package.json
+  copy:
+    src: package.json
     dest: "{{ nodejs_app_dir }}/package.json"
+    mode: '0644'
 
-- name: Installer les dépendances npm
+- name: Deploy app.js
+  copy:
+    src: app.js
+    dest: "{{ nodejs_app_dir }}/app.js"
+    mode: '0644'
+  notify: restart node app
+
+- name: Install npm dependencies
   npm:
     path: "{{ nodejs_app_dir }}"
-    production: true
+    state: present
 
-- name: Déployer l'application Express
-  template:
-    src: app.js.j2
-    dest: "{{ nodejs_app_dir }}/app.js"
-  notify: Restart nodejs app
+- name: Install PM2 globally
+  npm:
+    name: pm2
+    global: yes
+    state: present
 
-- name: Déployer le service systemd
-  copy:
-    src: app.service
-    dest: /etc/systemd/system/app.service
-  notify:
-    - Reload systemd
-    - Restart nodejs app
+- name: Stop existing PM2 app if running
+  shell: pm2 delete app || true
+  args:
+    chdir: "{{ nodejs_app_dir }}"
+  ignore_errors: yes
 
-- name: Activer et démarrer l'application
-  systemd:
-    name: app
-    enabled: yes
-    state: started
+- name: Start Node.js app with PM2
+  shell: |
+    export DB_HOST={{ postgresql_host }}
+    export DB_PORT={{ postgresql_port }}
+    export DB_NAME={{ postgresql_db }}
+    export DB_USER={{ postgresql_user }}
+    export DB_PASSWORD={{ vault_postgres_password }}
+    pm2 start app.js --name app
+  args:
+    chdir: "{{ nodejs_app_dir }}"
+
+- name: Save PM2 configuration
+  shell: pm2 save
+  args:
+    chdir: "{{ nodejs_app_dir }}"
+
+- name: Setup PM2 startup script
+  shell: pm2 startup systemd -u root --hp /root
+  args:
+    creates: /etc/systemd/system/pm2-root.service

@@ -1,3 +1,106 @@
 #SPDX-License-Identifier: MIT-0
 ---
 # tasks file for roles/postgresql
+
+- name: Installer PostgreSQL
+  apt:
+    name:
+      - postgresql
+      - postgresql-contrib
+      - python3-psycopg2
+    state: present
+    update_cache: yes
+
+- name: S'assurer que PostgreSQL est démarré et activé
+  service:
+    name: postgresql
+    state: started
+    enabled: yes
+
+- name: Redémarrer PostgreSQL pour s'assurer qu'il écoute correctement
+  service:
+    name: postgresql
+    state: restarted
+  when: ansible_check_mode == false
+
+- name: Attendre que PostgreSQL soit prêt
+  wait_for:
+    port: "{{ postgresql_port }}"
+    host: "{{ postgresql_host }}"
+    timeout: 60
+    delay: 5
+    state: started
+  when: ansible_check_mode == false
+
+- name: Pause supplémentaire pour s'assurer que PostgreSQL est complètement prêt
+  pause:
+    seconds: 5
+  when: ansible_check_mode == false
+
+- name: Vérifier que PostgreSQL répond
+  become_user: postgres
+  command: psql -c "SELECT 1"
+  register: pg_check
+  changed_when: false
+  failed_when: false
+  when: ansible_check_mode == false
+
+- name: Afficher le résultat de la vérification
+  debug:
+    var: pg_check
+  when: ansible_check_mode == false
+
+- name: Créer l'utilisateur PostgreSQL
+  become_user: postgres
+  community.postgresql.postgresql_user:
+    name: "{{ postgresql_user }}"
+    password: "{{ postgresql_password }}"
+    role_attr_flags: CREATEDB,NOSUPERUSER
+    state: present
+  when: ansible_check_mode == false
+
+- name: Créer la base de données
+  become_user: postgres
+  community.postgresql.postgresql_db:
+    name: "{{ postgresql_db }}"
+    owner: "{{ postgresql_user }}"
+    encoding: UTF-8
+    state: present
+  when: ansible_check_mode == false
+
+- name: Déployer le script d'initialisation SQL
+  template:
+    src: init.sql.j2
+    dest: /tmp/init.sql
+    mode: '0600'
+    owner: postgres
+    group: postgres
+
+- name: Exécuter le script d'initialisation SQL
+  become_user: postgres
+  community.postgresql.postgresql_query:
+    db: "{{ postgresql_db }}"
+    path_to_script: /tmp/init.sql
+  when: ansible_check_mode == false
+
+- name: Supprimer le fichier SQL temporaire
+  file:
+    path: /tmp/init.sql
+    state: absent
+
+- name: Configurer pg_hba.conf pour les connexions MD5
+  lineinfile:
+    path: "/etc/postgresql/{{ postgresql_version | default('14') }}/main/pg_hba.conf"
+    regexp: '^local\s+all\s+all\s+'
+    line: 'local   all             all                                     md5'
+    backup: yes
+  notify: Restart postgresql
+
+- name: Configurer PostgreSQL pour écouter sur toutes les interfaces (optionnel)
+  lineinfile:
+    path: "/etc/postgresql/{{ postgresql_version | default('14') }}/main/postgresql.conf"
+    regexp: "^#?listen_addresses"
+    line: "listen_addresses = '*'"
+    backup: yes
+  notify: Restart postgresql
+  when: postgresql_listen_all | default(false)

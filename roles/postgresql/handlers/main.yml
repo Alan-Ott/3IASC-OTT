@@ -1,3 +1,11 @@
 #SPDX-License-Identifier: MIT-0
 ---
 # handlers file for roles/postgresql
+
+- name: Restart postgresql
+  service:
+    name: postgresql
+    state: restarted
+  when: ansible_check_mode == false
+
+  

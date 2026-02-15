@@ -7,11 +7,11 @@ ExecStart=/usr/bin/node {{ nodejs_app_dir }}/app.js
 WorkingDirectory={{ nodejs_app_dir }}
 Restart=always
 Environment=PORT={{ nodejs_port }}
-Environment=DB_HOST={{ db_host }}
-Environment=DB_PORT={{ db_port }}
-Environment=DB_NAME={{ db_name }}
-Environment=DB_USER={{ db_user }}
-Environment=DB_PASSWORD={{ db_password }}
+Environment=DB_HOST={{ postgresql_host }}
+Environment=DB_PORT={{ postgresql_port }}
+Environment=DB_NAME={{ postgresql_db }}
+Environment=DB_USER={{ postgresql_user }}
+Environment=DB_PASSWORD={{ postgresql_password }} 
 
 [Install]
 WantedBy=multi-user.target

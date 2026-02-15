@@ -1,5 +1,5 @@
 {
-  "name": "backend",
+  "name": "nodejs-api",
   "version": "1.0.0",
   "description": "Backend Express pour l'évaluation Docker",
   "main": "src/app.js",
